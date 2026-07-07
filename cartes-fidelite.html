@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#141418">
+<title>Portefeuille — cartes de fidélité</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Fragment+Mono&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<style>
+  :root{
+    --bg:#141418;
+    --bg-soft:#1C1C22;
+    --line:#2A2A32;
+    --ink:#F3EFE7;
+    --ink-dim:#9A968E;
+    --ink-faint:#5C5A56;
+    --white:#FBFAF6;
+    --radius:20px;
+    --ease:cubic-bezier(.2,.9,.25,1);
+    --display:"Bricolage Grotesque",sans-serif;
+    --body:"Hanken Grotesk",sans-serif;
+    --mono:"Fragment Mono",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--body);
+    -webkit-font-smoothing:antialiased;
+    overscroll-behavior:none;
+  }
+  #app{max-width:520px;margin:0 auto;min-height:100%;position:relative;padding-bottom:120px}
+
+  /* ---------- Header ---------- */
+  header{
+    position:sticky;top:0;z-index:20;
+    background:linear-gradient(var(--bg) 72%, transparent);
+    padding:26px 22px 14px;
+    display:flex;align-items:flex-end;justify-content:space-between;
+  }
+  .brand{display:flex;flex-direction:column;gap:2px}
+  .brand h1{
+    font-family:var(--display);
+    font-weight:800;font-size:26px;letter-spacing:-.02em;line-height:1;
+  }
+  .brand .count{
+    font-family:var(--mono);font-size:11px;color:var(--ink-dim);
+    letter-spacing:.06em;text-transform:uppercase;
+  }
+  .menu-btn{
+    width:40px;height:40px;border-radius:50%;
+    border:1px solid var(--line);background:var(--bg-soft);
+    color:var(--ink-dim);cursor:pointer;font-size:18px;line-height:1;
+    display:grid;place-items:center;transition:.2s var(--ease);
+  }
+  .menu-btn:hover{color:var(--ink);border-color:var(--ink-faint)}
+
+  /* ---------- Search ---------- */
+  .search{padding:0 22px 6px;display:none}
+  .search.show{display:block}
+  .search input{
+    width:100%;background:var(--bg-soft);border:1px solid var(--line);
+    color:var(--ink);font-family:var(--body);font-size:15px;
+    padding:11px 16px;border-radius:14px;outline:none;transition:.2s var(--ease);
+  }
+  .search input::placeholder{color:var(--ink-faint)}
+  .search input:focus{border-color:var(--ink-faint)}
+
+  /* ---------- Grid ---------- */
+  .grid{
+    padding:8px 18px;
+    display:grid;grid-template-columns:1fr 1fr;gap:14px;
+  }
+  .card{
+    position:relative;aspect-ratio:1.586/1;border-radius:var(--radius);
+    padding:16px 16px 14px;cursor:pointer;overflow:hidden;
+    display:flex;flex-direction:column;justify-content:space-between;
+    color:#fff;border:none;text-align:left;font-family:var(--body);
+    box-shadow:0 8px 22px -12px rgba(0,0,0,.7);
+    transition:transform .35s var(--ease), box-shadow .35s var(--ease);
+    animation:cardIn .45s var(--ease) both;
+  }
+  @keyframes cardIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+  .card:active{transform:scale(.97)}
+  .card:hover{box-shadow:0 14px 30px -12px rgba(0,0,0,.8)}
+  /* magnetic stripe detail */
+  .card::after{
+    content:"";position:absolute;left:0;right:0;top:38%;height:10%;
+    background:rgba(0,0,0,.22);
+  }
+  .card .name{
+    font-family:var(--display);font-weight:700;font-size:17px;line-height:1.08;
+    letter-spacing:-.01em;position:relative;z-index:1;
+    max-width:100%;word-break:break-word;
+    text-shadow:0 1px 8px rgba(0,0,0,.25);
+  }
+  .card .num{
+    font-family:var(--mono);font-size:12px;letter-spacing:.04em;
+    opacity:.9;position:relative;z-index:1;
+  }
+  .card .num small{opacity:.6;font-size:10px;display:block;letter-spacing:.14em;text-transform:uppercase;margin-bottom:2px}
+
+  /* ---------- Empty ---------- */
+  .empty{
+    display:none;flex-direction:column;align-items:center;text-align:center;
+    padding:70px 40px;gap:14px;color:var(--ink-dim);
+  }
+  .empty.show{display:flex}
+  .empty .stack{position:relative;width:90px;height:64px;margin-bottom:6px}
+  .empty .stack span{position:absolute;inset:0;border-radius:12px;border:1.5px solid var(--line)}
+  .empty .stack span:nth-child(1){transform:rotate(-9deg) translateY(4px);background:var(--bg-soft)}
+  .empty .stack span:nth-child(2){transform:rotate(4deg);background:var(--bg-soft)}
+  .empty .stack span:nth-child(3){transform:rotate(-2deg) translateY(-3px);background:#26262e;border-color:var(--ink-faint)}
+  .empty h2{font-family:var(--display);font-weight:700;font-size:20px;color:var(--ink)}
+  .empty p{font-size:14px;max-width:240px;line-height:1.45}
+
+  /* ---------- FAB ---------- */
+  .fab{
+    position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+    z-index:30;background:var(--white);color:#141418;
+    border:none;border-radius:100px;padding:15px 26px 15px 20px;
+    font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:-.01em;
+    display:flex;align-items:center;gap:9px;cursor:pointer;
+    box-shadow:0 12px 30px -8px rgba(0,0,0,.6);
+    transition:transform .25s var(--ease), box-shadow .25s var(--ease);
+  }
+  .fab:hover{transform:translateX(-50%) translateY(-2px);box-shadow:0 16px 34px -8px rgba(0,0,0,.7)}
+  .fab:active{transform:translateX(-50%) scale(.96)}
+  .fab .plus{font-size:22px;line-height:0;margin-top:-1px}
+
+  /* ---------- Sheet ---------- */
+  .scrim{
+    position:fixed;inset:0;z-index:40;background:rgba(8,8,10,.6);
+    backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .3s var(--ease);
+  }
+  .scrim.show{opacity:1;pointer-events:auto}
+  .sheet{
+    position:fixed;left:0;right:0;bottom:0;z-index:50;
+    max-width:520px;margin:0 auto;
+    background:var(--bg-soft);border:1px solid var(--line);border-bottom:none;
+    border-radius:26px 26px 0 0;padding:10px 22px calc(24px + env(safe-area-inset-bottom));
+    transform:translateY(102%);transition:transform .38s var(--ease);
+  }
+  .sheet.show{transform:translateY(0)}
+  .grab{width:38px;height:4px;border-radius:4px;background:var(--line);margin:6px auto 14px}
+  .sheet h3{font-family:var(--display);font-weight:700;font-size:19px;margin-bottom:16px}
+  .field{margin-bottom:14px}
+  .field label{
+    display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ink-dim);margin-bottom:6px;
+  }
+  .field input{
+    width:100%;background:var(--bg);border:1px solid var(--line);
+    color:var(--ink);font-family:var(--body);font-size:16px;
+    padding:13px 15px;border-radius:13px;outline:none;transition:.2s var(--ease);
+  }
+  .field input.mono{font-family:var(--mono);letter-spacing:.04em}
+  .field input:focus{border-color:var(--ink-faint)}
+  .field input::placeholder{color:var(--ink-faint)}
+
+  .preview{
+    background:var(--white);border-radius:13px;padding:12px;
+    min-height:74px;display:flex;align-items:center;justify-content:center;
+    margin-bottom:6px;
+  }
+  .preview svg{max-width:100%;height:56px}
+  .preview .hint{color:#9a968e;font-size:12px;font-family:var(--mono)}
+  .fmt-badge{
+    font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--ink-dim);
+    text-align:center;margin-bottom:16px;text-transform:uppercase;min-height:13px;
+  }
+
+  .swatches{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:20px}
+  .swatch{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:.15s var(--ease)}
+  .swatch[data-sel="1"]{border-color:var(--white);transform:scale(1.1)}
+
+  .btn-primary{
+    width:100%;background:var(--white);color:#141418;border:none;
+    border-radius:14px;padding:15px;font-family:var(--display);font-weight:700;
+    font-size:16px;cursor:pointer;transition:.2s var(--ease);
+  }
+  .btn-primary:hover{opacity:.9}
+  .btn-primary:disabled{opacity:.35;cursor:not-allowed}
+
+  /* ---------- Detail overlay ---------- */
+  .detail{
+    position:fixed;inset:0;z-index:60;background:var(--bg);
+    display:flex;flex-direction:column;
+    transform:translateY(100%);transition:transform .4s var(--ease);
+  }
+  .detail.show{transform:translateY(0)}
+  .detail-top{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:22px 20px 8px;
+  }
+  .detail-top .close{
+    width:40px;height:40px;border-radius:50%;border:1px solid var(--line);
+    background:var(--bg-soft);color:var(--ink);font-size:20px;cursor:pointer;
+    display:grid;place-items:center;
+  }
+  .detail-top .del{
+    background:none;border:none;color:var(--ink-faint);font-family:var(--mono);
+    font-size:11px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;padding:8px;
+  }
+  .detail-top .del:hover{color:#E08B7A}
+
+  .detail-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 24px 30px;gap:20px}
+  .detail-name{font-family:var(--display);font-weight:800;font-size:30px;letter-spacing:-.02em;text-align:center;max-width:100%;word-break:break-word}
+  .code-face{
+    background:var(--white);border-radius:22px;padding:30px 24px;width:100%;
+    display:flex;flex-direction:column;align-items:center;gap:16px;
+    box-shadow:0 20px 50px -20px rgba(0,0,0,.8);
+  }
+  .code-face svg,.code-face #qr{max-width:100%}
+  .code-face #qr img,.code-face #qr canvas{border-radius:6px}
+  .code-num{font-family:var(--mono);font-size:15px;letter-spacing:.12em;color:#141418}
+  .code-toggle{display:flex;gap:6px;background:var(--bg-soft);border:1px solid var(--line);padding:4px;border-radius:100px}
+  .code-toggle button{
+    background:none;border:none;color:var(--ink-dim);font-family:var(--mono);
+    font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    padding:8px 16px;border-radius:100px;cursor:pointer;transition:.2s var(--ease);
+  }
+  .code-toggle button.active{background:var(--white);color:#141418}
+  .bright-tip{font-family:var(--mono);font-size:10px;color:var(--ink-faint);letter-spacing:.06em;text-align:center}
+  .recolor{display:flex;gap:8px}
+  .recolor .swatch{width:24px;height:24px}
+
+  /* ---------- Menu popover ---------- */
+  .popover{
+    position:absolute;top:66px;right:22px;z-index:35;
+    background:var(--bg-soft);border:1px solid var(--line);border-radius:14px;
+    padding:6px;min-width:180px;display:none;
+    box-shadow:0 16px 30px -12px rgba(0,0,0,.7);
+  }
+  .popover.show{display:block;animation:pop .18s var(--ease)}
+  @keyframes pop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+  .popover button{
+    width:100%;text-align:left;background:none;border:none;color:var(--ink);
+    font-family:var(--body);font-size:14px;padding:11px 12px;border-radius:9px;cursor:pointer;
+    display:flex;align-items:center;gap:10px;transition:.15s var(--ease);
+  }
+  .popover button:hover{background:var(--bg)}
+  .popover button .ic{font-family:var(--mono);color:var(--ink-dim);width:16px}
+
+  /* ---------- Toast ---------- */
+  .toast{
+    position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--white);color:#141418;font-family:var(--body);font-size:13px;font-weight:500;
+    padding:10px 18px;border-radius:100px;z-index:80;opacity:0;pointer-events:none;
+    transition:.3s var(--ease);box-shadow:0 10px 24px -8px rgba(0,0,0,.5);
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ---------- Scan (dans la feuille) ---------- */
+  .sheet{max-height:92vh;overflow-y:auto}
+  .scan-cta{
+    width:100%;display:flex;align-items:center;justify-content:center;gap:10px;
+    background:var(--white);color:#141418;border:none;border-radius:14px;
+    padding:16px;font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:-.01em;
+    cursor:pointer;margin-bottom:16px;transition:.2s var(--ease);
+  }
+  .scan-cta:hover{transform:translateY(-1px);box-shadow:0 8px 18px -8px rgba(0,0,0,.5)}
+  .scan-cta:active{transform:scale(.98)}
+  .scan-cta svg{width:20px;height:20px;flex:none}
+  .or-div{
+    display:flex;align-items:center;gap:12px;margin-bottom:16px;
+    color:var(--ink-faint);font-family:var(--mono);font-size:10px;
+    letter-spacing:.16em;text-transform:uppercase;
+  }
+  .or-div::before,.or-div::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  /* ---------- Scanner overlay ---------- */
+  .scanner{
+    position:fixed;inset:0;z-index:70;background:#000;
+    display:flex;flex-direction:column;
+    transform:translateY(100%);transition:transform .35s var(--ease);
+  }
+  .scanner.show{transform:translateY(0)}
+  #reader{flex:1;width:100%;min-height:0;overflow:hidden;background:#000}
+  #reader video{width:100%!important;height:100%!important;object-fit:cover!important}
+  .scanner-top{
+    position:absolute;top:0;left:0;right:0;z-index:5;
+    display:flex;align-items:center;justify-content:space-between;padding:20px;
+    background:linear-gradient(rgba(0,0,0,.65),transparent);
+  }
+  .scanner-title{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#fff;opacity:.85}
+  .scanner-top .close{
+    width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.25);
+    background:rgba(255,255,255,.12);backdrop-filter:blur(6px);color:#fff;
+    font-size:16px;cursor:pointer;display:grid;place-items:center;
+  }
+  .scanner-hint{
+    position:absolute;bottom:0;left:0;right:0;z-index:5;text-align:center;
+    padding:26px 24px calc(30px + env(safe-area-inset-bottom));
+    background:linear-gradient(transparent,rgba(0,0,0,.78));
+  }
+  .scanner-hint p{color:#fff;font-family:var(--body);font-size:15px;margin-bottom:14px;opacity:.95}
+  .photo-btn{
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.32);color:#fff;
+    font-family:var(--display);font-weight:600;font-size:14px;padding:11px 22px;
+    border-radius:100px;cursor:pointer;backdrop-filter:blur(6px);transition:.2s var(--ease);
+  }
+  .photo-btn:hover{background:rgba(255,255,255,.24)}
+  .scanner-fallback{
+    position:absolute;inset:0;z-index:6;display:none;flex-direction:column;
+    align-items:center;justify-content:center;gap:16px;padding:44px;text-align:center;background:var(--bg);
+  }
+  .scanner-fallback.show{display:flex}
+  .scanner-fallback h3{font-family:var(--display);font-weight:700;font-size:21px;color:var(--ink)}
+  .scanner-fallback p{color:var(--ink-dim);font-size:14px;max-width:270px;line-height:1.5}
+  .scanner-fallback .photo-btn{background:var(--white);color:#141418;border:none;padding:14px 26px;font-size:15px}
+
+  /* ---------- Panels (Créer un compte / Profil) ---------- */
+  .panel{
+    position:fixed;inset:0;z-index:65;background:var(--bg);max-width:520px;margin:0 auto;
+    display:flex;flex-direction:column;transform:translateY(100%);transition:transform .38s var(--ease);
+  }
+  .panel.show{transform:translateY(0)}
+  .panel-top{
+    display:flex;align-items:center;justify-content:space-between;padding:24px 20px 12px;
+  }
+  .panel-top h2{font-family:var(--display);font-weight:800;font-size:23px;letter-spacing:-.02em}
+  .panel-top .close{
+    width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--bg-soft);
+    color:var(--ink);font-size:16px;cursor:pointer;display:grid;place-items:center;
+  }
+  .panel-body{flex:1;overflow-y:auto;padding:4px 20px calc(34px + env(safe-area-inset-bottom))}
+
+  .pf-banner{
+    display:flex;align-items:center;gap:12px;background:var(--bg-soft);border:1px solid var(--line);
+    border-radius:14px;padding:14px;margin:6px 0 4px;font-size:13px;color:var(--ink-dim);line-height:1.4;
+  }
+  .pf-banner button{
+    margin-left:auto;background:var(--white);color:#141418;border:none;border-radius:100px;
+    padding:9px 15px;font-family:var(--display);font-weight:600;font-size:13px;cursor:pointer;flex:none;
+  }
+  .pf-note{font-size:13px;color:var(--ink-dim);line-height:1.55;margin:8px 0}
+
+  .prog-search{
+    width:100%;background:var(--bg-soft);border:1px solid var(--line);color:var(--ink);
+    font-family:var(--body);font-size:15px;padding:12px 16px;border-radius:13px;outline:none;margin-top:14px;transition:.2s var(--ease);
+  }
+  .prog-search::placeholder{color:var(--ink-faint)}
+  .prog-search:focus{border-color:var(--ink-faint)}
+  .prog-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+  .prog{
+    display:flex;align-items:center;gap:11px;padding:14px;border-radius:14px;background:var(--bg-soft);
+    border:1px solid var(--line);cursor:pointer;text-align:left;color:var(--ink);
+    font-family:var(--body);font-size:14px;font-weight:500;transition:.15s var(--ease);
+  }
+  .prog:hover{border-color:var(--ink-faint);transform:translateY(-1px)}
+  .prog .dot{width:26px;height:26px;border-radius:8px;flex:none}
+  .prog.add{justify-content:center;color:var(--ink-dim);border-style:dashed;font-weight:500}
+
+  .prog-hero{display:flex;align-items:center;gap:14px;margin:8px 0 22px}
+  .prog-hero .badge{width:54px;height:54px;border-radius:15px;flex:none}
+  .prog-hero h3{font-family:var(--display);font-weight:700;font-size:23px;letter-spacing:-.01em}
+  .section-label{
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-dim);margin:24px 0 10px;
+  }
+  .chip{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--bg-soft);
+    border:1px solid var(--line);border-radius:12px;padding:11px 14px;margin-bottom:8px;
+  }
+  .chip .k{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim)}
+  .chip .v{font-family:var(--body);font-size:14px;color:var(--ink);margin-top:3px;word-break:break-word}
+  .chip button{
+    background:none;border:1px solid var(--line);color:var(--ink-dim);border-radius:9px;
+    padding:8px 13px;font-family:var(--mono);font-size:11px;cursor:pointer;flex:none;transition:.15s var(--ease);
+  }
+  .chip button:hover{color:var(--ink);border-color:var(--ink-faint)}
+  .link-btn{
+    font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--ink-faint);
+    background:none;border:none;cursor:pointer;padding:6px 0;text-decoration:underline;text-underline-offset:3px;
+  }
+  .link-btn:hover{color:var(--ink-dim)}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important;transition:none !important}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">
+      <h1>Portefeuille</h1>
+      <span class="count" id="count">Aucune carte</span>
+    </div>
+    <button class="menu-btn" id="menuBtn" aria-label="Menu">···</button>
+  </header>
+
+  <div class="popover" id="popover">
+    <button id="createAcct"><span class="ic">✦</span> Créer un compte fidélité</button>
+    <button id="profileItem"><span class="ic">☺</span> Mon profil</button>
+    <button id="searchToggle"><span class="ic">⌕</span> Rechercher</button>
+    <button id="exportBtn"><span class="ic">↧</span> Exporter (sauvegarde)</button>
+    <button id="importBtn"><span class="ic">↥</span> Importer</button>
+    <input type="file" id="importFile" accept="application/json" hidden>
+  </div>
+
+  <div class="search" id="searchWrap">
+    <input type="text" id="searchInput" placeholder="Rechercher une enseigne…" autocomplete="off">
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="empty" id="empty">
+    <div class="stack"><span></span><span></span><span></span></div>
+    <h2>Ton portefeuille est vide</h2>
+    <p>Ajoute ta première carte : nom de l'enseigne, numéro, c'est prêt à scanner en caisse.</p>
+  </div>
+</div>
+
+<button class="fab" id="fab"><span class="plus">+</span> Ajouter une carte</button>
+
+<!-- Add sheet -->
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-label="Ajouter une carte">
+  <div class="grab"></div>
+  <h3>Nouvelle carte</h3>
+  <button class="scan-cta" id="scanCta">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
+    Scanner la carte
+  </button>
+  <div class="or-div">ou à la main</div>
+  <div class="field">
+    <label for="inName">Enseigne</label>
+    <input type="text" id="inName" placeholder="Décathlon, Fnac, Sephora…" autocomplete="off">
+  </div>
+  <div class="field">
+    <label for="inNum">Numéro de carte</label>
+    <input type="text" id="inNum" class="mono" placeholder="Le code sous le code-barres" inputmode="numeric" autocomplete="off">
+  </div>
+  <div class="preview" id="addPreview"><span class="hint">Le code-barres apparaît ici</span></div>
+  <div class="fmt-badge" id="fmtBadge"></div>
+  <div class="swatches" id="swatches"></div>
+  <button class="btn-primary" id="saveBtn" disabled>Ajouter au portefeuille</button>
+  <button class="link-btn" id="noCardYet" style="display:block;margin:16px auto 2px">Pas encore de carte ? Créer un compte</button>
+</div>
+
+<!-- Detail overlay -->
+<div class="detail" id="detail" role="dialog" aria-label="Carte">
+  <div class="detail-top">
+    <button class="close" id="detailClose" aria-label="Fermer">↓</button>
+    <button class="del" id="detailDel">Supprimer</button>
+  </div>
+  <div class="detail-body">
+    <div class="detail-name" id="detailName"></div>
+    <div class="code-face">
+      <svg id="barcode"></svg>
+      <div id="qr" style="display:none"></div>
+      <div class="code-num" id="detailNum"></div>
+    </div>
+    <div class="code-toggle">
+      <button data-mode="bar" class="active">Code-barres</button>
+      <button data-mode="qr">QR</button>
+    </div>
+    <div class="recolor" id="recolor"></div>
+    <div class="bright-tip">Monte la luminosité de l'écran pour scanner</div>
+  </div>
+</div>
+
+<!-- Créer un compte -->
+<div class="panel" id="createPanel" role="dialog" aria-label="Créer un compte fidélité">
+  <div class="panel-top">
+    <h2 id="createTitle">Créer un compte</h2>
+    <button class="close" id="createClose" aria-label="Fermer">✕</button>
+  </div>
+  <div class="panel-body">
+    <div id="createList">
+      <div class="pf-banner" id="pfBanner">
+        Enregistre ton profil pour remplir les inscriptions en un clic.
+        <button id="pfBannerBtn">Mon profil</button>
+      </div>
+      <input class="prog-search" id="progSearch" placeholder="Rechercher une enseigne…" autocomplete="off">
+      <div class="prog-grid" id="progGrid"></div>
+    </div>
+    <div id="createDetail" style="display:none"></div>
+  </div>
+</div>
+
+<!-- Mon profil -->
+<div class="panel" id="profilePanel" role="dialog" aria-label="Mon profil">
+  <div class="panel-top">
+    <h2>Mon profil</h2>
+    <button class="close" id="profileClose" aria-label="Fermer">✕</button>
+  </div>
+  <div class="panel-body">
+    <p class="pf-note">Ces informations restent sur ton appareil. Elles servent au remplissage express des inscriptions — rien n'est envoyé.</p>
+    <div class="field"><label for="pf_civilite">Civilité</label><input id="pf_civilite" placeholder="Mme / M." autocomplete="off"></div>
+    <div class="field"><label for="pf_prenom">Prénom</label><input id="pf_prenom" autocomplete="given-name"></div>
+    <div class="field"><label for="pf_nom">Nom</label><input id="pf_nom" autocomplete="family-name"></div>
+    <div class="field"><label for="pf_email">E-mail</label><input id="pf_email" type="email" inputmode="email" autocomplete="email"></div>
+    <div class="field"><label for="pf_tel">Téléphone</label><input id="pf_tel" type="tel" inputmode="tel" autocomplete="tel"></div>
+    <div class="field"><label for="pf_naissance">Date de naissance</label><input id="pf_naissance" placeholder="JJ/MM/AAAA" autocomplete="bday"></div>
+    <div class="field"><label for="pf_cp">Code postal</label><input id="pf_cp" inputmode="numeric" autocomplete="postal-code"></div>
+    <div class="field"><label for="pf_ville">Ville</label><input id="pf_ville" autocomplete="address-level2"></div>
+    <button class="btn-primary" id="profileSave" style="margin-top:8px">Enregistrer mon profil</button>
+  </div>
+</div>
+
+<!-- Scanner overlay -->
+<div class="scanner" id="scanner" role="dialog" aria-label="Scanner une carte">
+  <div class="scanner-top">
+    <span class="scanner-title">Vise le code-barres</span>
+    <button class="close" id="scannerClose" aria-label="Fermer le scanner">✕</button>
+  </div>
+  <div id="reader"></div>
+  <div class="scanner-hint" id="scannerHint">
+    <p>Aligne le code-barres de ta carte dans le cadre</p>
+    <button class="photo-btn" id="photoBtn">Utiliser une photo</button>
+  </div>
+  <div class="scanner-fallback" id="scannerFallback">
+    <h3>Caméra indisponible</h3>
+    <p>Prends une photo du code-barres, je m'occupe de le lire.</p>
+    <button class="photo-btn" id="photoBtn2">Prendre une photo</button>
+  </div>
+  <input type="file" id="scanFile" accept="image/*" capture="environment" hidden>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Palette (foncée, texte blanc lisible) ----------
+  const COLORS = ["#B24A2E","#59662F","#285866","#6E3357","#9A6B1E","#2F4A3C",
+                  "#8A382B","#3E3B63","#63421F","#1F6B5C","#4B2E4A","#35506B"];
+
+  // ---------- Stockage (persistant dans Claude, localStorage si téléchargé) ----------
+  const KEY = "portefeuille-cartes";
+  let _mem = [];
+  const Store = {
+    async load(){
+      if (typeof window !== "undefined" && window.storage){
+        try { const r = await window.storage.get(KEY); return r ? JSON.parse(r.value) : []; }
+        catch(e){ return []; }
+      }
+      try { const raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : []; }
+      catch(e){ return _mem; }
+    },
+    async save(cards){
+      if (typeof window !== "undefined" && window.storage){
+        try { await window.storage.set(KEY, JSON.stringify(cards)); return; } catch(e){}
+      }
+      try { localStorage.setItem(KEY, JSON.stringify(cards)); return; } catch(e){ _mem = cards; }
+    }
+  };
+
+  // ---------- Stockage générique (profil, programmes) ----------
+  const PROFILE_KEY = "portefeuille-profil";
+  const PROG_KEY = "portefeuille-programmes";
+  const KV = {
+    async get(key, def){
+      if (typeof window!=="undefined" && window.storage){
+        try{ const r=await window.storage.get(key); return r?JSON.parse(r.value):def; }catch(e){ return def; }
+      }
+      try{ const raw=localStorage.getItem(key); return raw?JSON.parse(raw):def; }catch(e){ return def; }
+    },
+    async set(key,val){
+      if (typeof window!=="undefined" && window.storage){ try{ await window.storage.set(key,JSON.stringify(val)); return; }catch(e){} }
+      try{ localStorage.setItem(key,JSON.stringify(val)); }catch(e){}
+    }
+  };
+  // Enseignes courantes (France). url vérifiée quand connue, sinon recherche officielle.
+  const BRANDS = [
+    {name:"Decathlon", color:"#0082C3", url:"https://decatclub.decathlon.fr/"},
+    {name:"Sephora", color:"#1A1A1A", url:"https://www.sephora.fr/connexion/"},
+    {name:"IKEA", color:"#0058A3", url:"https://www.ikea.com/fr/fr/ikea-family/"},
+    {name:"Fnac", color:"#E1A200"},
+    {name:"Carrefour", color:"#004E9F"},
+    {name:"Monoprix", color:"#E5006D"},
+    {name:"Auchan", color:"#E2001A"},
+    {name:"Intermarché", color:"#E2001A"},
+    {name:"E.Leclerc", color:"#0066B3"},
+    {name:"H&M", color:"#E50010"},
+    {name:"Zara", color:"#1A1A1A"},
+    {name:"Uniqlo", color:"#E60012"},
+    {name:"Kiabi", color:"#00AEC7"},
+    {name:"Yves Rocher", color:"#4B6A2B"},
+    {name:"Marionnaud", color:"#B0006E"},
+    {name:"Nocibé", color:"#E5007D"},
+    {name:"Starbucks", color:"#00704A"},
+    {name:"McDonald's", color:"#C8102E"},
+    {name:"Leroy Merlin", color:"#78BE20"},
+    {name:"Picard", color:"#004C97"},
+  ];
+  let profile = null;
+  let programsData = { overrides:{}, custom:[] };
+
+  let cards = [];
+  let selColor = COLORS[0];
+  let current = null; // carte ouverte
+
+  const $ = s => document.querySelector(s);
+  const el = {
+    grid:$("#grid"), empty:$("#empty"), count:$("#count"),
+    fab:$("#fab"), scrim:$("#scrim"), sheet:$("#sheet"),
+    inName:$("#inName"), inNum:$("#inNum"), addPreview:$("#addPreview"),
+    fmtBadge:$("#fmtBadge"), swatches:$("#swatches"), saveBtn:$("#saveBtn"),
+    detail:$("#detail"), detailName:$("#detailName"), detailNum:$("#detailNum"),
+    barcode:$("#barcode"), qr:$("#qr"), recolor:$("#recolor"),
+    toast:$("#toast"), menuBtn:$("#menuBtn"), popover:$("#popover"),
+    searchWrap:$("#searchWrap"), searchInput:$("#searchInput"),
+    scanner:$("#scanner"), scannerHint:$("#scannerHint"),
+    scannerFallback:$("#scannerFallback"), scanFile:$("#scanFile"),
+    createPanel:$("#createPanel"), createList:$("#createList"), createDetail:$("#createDetail"),
+    progGrid:$("#progGrid"), progSearch:$("#progSearch"), pfBanner:$("#pfBanner"),
+    profilePanel:$("#profilePanel"),
+  };
+
+  // ---------- Utils ----------
+  function detectFormat(v){
+    const digits = /^\d+$/.test(v);
+    if (digits && v.length === 13) return "EAN13";
+    if (digits && v.length === 12) return "UPC";
+    if (digits && v.length === 8)  return "EAN8";
+    return "CODE128";
+  }
+  function hashColor(name){
+    let h = 0;
+    for (let i=0;i<name.length;i++) h = (h*31 + name.charCodeAt(i)) >>> 0;
+    return COLORS[h % COLORS.length];
+  }
+  function last4(n){ const c = n.replace(/\s/g,""); return c.length>4 ? "•••• "+c.slice(-4) : c; }
+  function toast(msg){
+    el.toast.textContent = msg; el.toast.classList.add("show");
+    clearTimeout(el.toast._t);
+    el.toast._t = setTimeout(()=>el.toast.classList.remove("show"), 1900);
+  }
+  function renderBarcode(target, value, format){
+    try {
+      JsBarcode(target, value, { format:format, width:2, height:70, margin:0, displayValue:false, background:"#FFFFFF00", lineColor:"#141418" });
+      return true;
+    } catch(e){
+      try {
+        JsBarcode(target, value, { format:"CODE128", width:2, height:70, margin:0, displayValue:false, background:"#FFFFFF00", lineColor:"#141418" });
+        return true;
+      } catch(e2){ return false; }
+    }
+  }
+
+  // ---------- Rendu grille ----------
+  function render(filter){
+    const list = filter ? cards.filter(c => c.name.toLowerCase().includes(filter.toLowerCase())) : cards;
+    el.grid.innerHTML = "";
+    cards.length ? el.empty.classList.remove("show") : el.empty.classList.add("show");
+    el.count.textContent = cards.length === 0 ? "Aucune carte"
+      : cards.length === 1 ? "1 carte" : cards.length + " cartes";
+
+    list.forEach((c,i) => {
+      const btn = document.createElement("button");
+      btn.className = "card";
+      btn.style.background = c.color;
+      btn.style.animationDelay = Math.min(i*30,180) + "ms";
+      btn.innerHTML = `<div class="name">${escapeHtml(c.name)}</div>
+        <div class="num"><small>Nº carte</small>${escapeHtml(last4(c.number))}</div>`;
+      btn.addEventListener("click", ()=>openDetail(c));
+      el.grid.appendChild(btn);
+    });
+  }
+  function escapeHtml(s){ const d=document.createElement("div"); d.textContent=s; return d.innerHTML; }
+
+  // ---------- Feuille d'ajout ----------
+  function buildSwatches(){
+    el.swatches.innerHTML = "";
+    COLORS.forEach(col => {
+      const s = document.createElement("button");
+      s.className = "swatch"; s.style.background = col; s.setAttribute("aria-label","Couleur");
+      if (col === selColor) s.dataset.sel = "1";
+      s.addEventListener("click", ()=>{
+        selColor = col;
+        [...el.swatches.children].forEach(x=>x.dataset.sel="0");
+        s.dataset.sel = "1";
+      });
+      el.swatches.appendChild(s);
+    });
+  }
+  function updatePreview(){
+    const name = el.inName.value.trim();
+    const num = el.inNum.value.trim();
+    // couleur auto selon le nom, tant que non modifiée manuellement
+    if (name && !el._colorTouched){
+      selColor = hashColor(name);
+      [...el.swatches.children].forEach(x => x.dataset.sel = (x.style.background && rgbToHex(x.style.background)===selColor) ? "1":"0");
+    }
+    if (num){
+      const fmt = detectFormat(num);
+      el.addPreview.innerHTML = '<svg id="pvSvg"></svg>';
+      const ok = renderBarcode($("#pvSvg"), num, fmt);
+      el.fmtBadge.textContent = ok ? "Format détecté · " + (fmt==="CODE128"?"Code 128":fmt) : "";
+      if(!ok){ el.addPreview.innerHTML = '<span class="hint">Numéro non valide</span>'; }
+    } else {
+      el.addPreview.innerHTML = '<span class="hint">Le code-barres apparaît ici</span>';
+      el.fmtBadge.textContent = "";
+    }
+    el.saveBtn.disabled = !(name && num);
+  }
+  function rgbToHex(rgb){
+    const m = rgb.match(/\d+/g); if(!m) return rgb;
+    return "#" + m.slice(0,3).map(x=>(+x).toString(16).padStart(2,"0")).join("").toUpperCase();
+  }
+
+  function openSheet(){
+    el._colorTouched = false;
+    el.inName.value = ""; el.inNum.value = "";
+    updatePreview(); buildSwatches();
+    el.scrim.classList.add("show"); el.sheet.classList.add("show");
+    setTimeout(()=>el.inName.focus(), 320);
+  }
+  function closeSheet(){ el.scrim.classList.remove("show"); el.sheet.classList.remove("show"); }
+
+  async function saveCard(){
+    const name = el.inName.value.trim();
+    const number = el.inNum.value.trim();
+    if (!name || !number) return;
+    cards.unshift({ id:Date.now()+"-"+Math.random().toString(36).slice(2,6),
+      name, number, color:selColor, format:detectFormat(number) });
+    await Store.save(cards);
+    closeSheet(); render(); toast(name + " ajoutée");
+  }
+
+  // ---------- Scanner ----------
+  let h5qr = null, scanning = false;
+  function fmts(){
+    if (typeof Html5QrcodeSupportedFormats === "undefined") return undefined;
+    const F = Html5QrcodeSupportedFormats;
+    return [F.EAN_13, F.EAN_8, F.CODE_128, F.CODE_39, F.ITF, F.UPC_A, F.UPC_E, F.QR_CODE];
+  }
+  function onScanned(text){
+    const val = String(text||"").trim();
+    if (!val) return;
+    el.inNum.value = val;
+    stopScanner(()=>{
+      el.scanner.classList.remove("show");
+      updatePreview();
+      if (!el.inName.value.trim()) setTimeout(()=>el.inName.focus(), 320);
+      toast("Code lu ✓");
+    });
+  }
+  function showFallback(title, msg){
+    el.scannerHint.style.display = "none";
+    el.scannerFallback.querySelector("h3").textContent = title;
+    el.scannerFallback.querySelector("p").textContent = msg;
+    el.scannerFallback.classList.add("show");
+  }
+  async function openScanner(){
+    el.scanner.classList.add("show");
+    el.scannerFallback.classList.remove("show");
+    el.scannerHint.style.display = "";
+    if (typeof Html5Qrcode === "undefined"){
+      showFallback("Lecteur indisponible", "Vérifie ta connexion, ou saisis le numéro à la main."); return;
+    }
+    try{
+      h5qr = new Html5Qrcode("reader", { formatsToSupport: fmts(), verbose:false });
+      scanning = true;
+      await h5qr.start(
+        { facingMode:"environment" },
+        { fps:10, qrbox:(vw,vh)=>({ width:Math.min(vw*0.82,320), height:Math.min(vh*0.5,170) }) },
+        (decoded)=>{ if (scanning){ scanning=false; onScanned(decoded); } },
+        ()=>{}
+      );
+    }catch(e){
+      scanning=false; h5qr=null;
+      showFallback("Caméra indisponible", "Ton navigateur ne donne pas l'accès caméra ici. Prends une photo du code-barres, je le lis.");
+    }
+  }
+  function stopScanner(cb){
+    if (h5qr && scanning){
+      scanning=false;
+      h5qr.stop().then(()=>{ try{h5qr.clear();}catch(_){} h5qr=null; cb&&cb(); })
+                 .catch(()=>{ h5qr=null; cb&&cb(); });
+    } else { try{ if(h5qr) h5qr.clear(); }catch(_){} h5qr=null; scanning=false; cb&&cb(); }
+  }
+  function closeScannerFull(){ stopScanner(()=>el.scanner.classList.remove("show")); }
+  function pickPhoto(){ el.scanFile.click(); }
+  async function decodePhoto(e){
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    await new Promise(res=>stopScanner(res));
+    if (typeof Html5Qrcode === "undefined"){ toast("Lecteur indisponible"); return; }
+    try{
+      h5qr = new Html5Qrcode("reader", { formatsToSupport: fmts(), verbose:false });
+      const text = await h5qr.scanFile(file, false);
+      try{ h5qr.clear(); }catch(_){}
+      h5qr=null;
+      onScanned(text);
+    }catch(err){
+      try{ if(h5qr) h5qr.clear(); }catch(_){}
+      h5qr=null;
+      toast("Code non lu — cadre-le bien et réessaie");
+    }
+  }
+
+  // ---------- Créer un compte / Profil ----------
+  const PF_FIELDS = [
+    ["civilite","Civilité"],["prenom","Prénom"],["nom","Nom"],
+    ["email","E-mail"],["tel","Téléphone"],["naissance","Date de naissance"],
+    ["cp","Code postal"],["ville","Ville"]
+  ];
+  function attr(s){ return escapeHtml(String(s)).replace(/"/g,"&quot;"); }
+  function programList(){
+    const ov = programsData.overrides || {};
+    const base = BRANDS.map(b => ({ ...b, url: ov[b.name] || b.url }));
+    const customs = (programsData.custom || []).map(c => ({ ...c, custom:true }));
+    return [...customs, ...base];
+  }
+  function signupUrl(b){
+    if (b.url) return b.url;
+    return "https://www.google.com/search?q=" + encodeURIComponent(b.name + " carte fidélité inscription");
+  }
+  function profileComplete(){ return !!(profile && (profile.prenom || profile.nom || profile.email)); }
+
+  function openCreate(){
+    closePopover(); showCreateList(); renderProgGrid(""); renderPfBanner();
+    el.progSearch.value = "";
+    el.createPanel.classList.add("show");
+  }
+  function closeCreate(){ el.createPanel.classList.remove("show"); }
+  function showCreateList(){
+    el.createList.style.display=""; el.createDetail.style.display="none";
+    document.getElementById("createTitle").textContent = "Créer un compte";
+  }
+  function renderPfBanner(){ el.pfBanner.style.display = profileComplete() ? "none" : "flex"; }
+
+  function renderProgGrid(filter){
+    const q = (filter||"").toLowerCase();
+    const list = programList().filter(b => b.name.toLowerCase().includes(q));
+    el.progGrid.innerHTML = "";
+    list.forEach(b => {
+      const btn = document.createElement("button");
+      btn.className = "prog";
+      btn.innerHTML = `<span class="dot" style="background:${attr(b.color||hashColor(b.name))}"></span>${escapeHtml(b.name)}`;
+      btn.addEventListener("click", ()=>openBrand(b));
+      el.progGrid.appendChild(btn);
+    });
+    const add = document.createElement("button");
+    add.className = "prog add"; add.textContent = "+ Ajouter une enseigne";
+    add.addEventListener("click", addCustomBrand);
+    el.progGrid.appendChild(add);
+  }
+  async function addCustomBrand(){
+    const name = prompt("Nom de l'enseigne ?"); if(!name || !name.trim()) return;
+    const url = prompt("Lien d'inscription (facultatif) :", "");
+    programsData.custom = programsData.custom || [];
+    programsData.custom.unshift({ name:name.trim(), url:(url||"").trim()||undefined, color:hashColor(name) });
+    await KV.set(PROG_KEY, programsData);
+    renderProgGrid(el.progSearch.value.trim());
+  }
+
+  function openBrand(b){
+    const url = signupUrl(b);
+    document.getElementById("createTitle").textContent = b.name;
+    let chips = "";
+    PF_FIELDS.forEach(([k,label])=>{
+      const v = profile && profile[k];
+      if (v) chips += `<div class="chip"><div><div class="k">${escapeHtml(label)}</div><div class="v">${escapeHtml(v)}</div></div><button data-copy="${attr(v)}">Copier</button></div>`;
+    });
+    if (!chips) chips = `<p class="pf-note">Ajoute ton profil pour copier tes infos en un clic. <button class="link-btn" id="chipToProfile">Compléter mon profil</button></p>`;
+    const cam = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>`;
+    el.createDetail.innerHTML = `
+      <div class="prog-hero"><span class="badge" style="background:${attr(b.color||hashColor(b.name))}"></span><h3>${escapeHtml(b.name)}</h3></div>
+      <a class="btn-primary" style="display:block;text-align:center;text-decoration:none" href="${attr(url)}" target="_blank" rel="noopener">Ouvrir l'inscription ↗</a>
+      <button class="link-btn" id="editUrl" style="display:block;margin:10px auto 0">Modifier le lien</button>
+      <div class="section-label">Remplissage express</div>
+      ${chips}
+      <div class="section-label">Une fois le compte créé</div>
+      <button class="scan-cta" id="brandScan">${cam} J'ai ma carte — la scanner</button>
+      <button class="link-btn" id="backToList" style="display:block;margin:4px auto 0">← Toutes les enseignes</button>
+    `;
+    el.createList.style.display="none"; el.createDetail.style.display="";
+    el.createDetail.scrollTop = 0;
+    el.createDetail.querySelectorAll("[data-copy]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{ copyText(btn.getAttribute("data-copy")); const t=btn.textContent; btn.textContent="Copié ✓"; setTimeout(()=>btn.textContent=t,1200); });
+    });
+    const wire = (id,fn)=>{ const e=document.getElementById(id); if(e) e.addEventListener("click",fn); };
+    wire("backToList", showCreateList);
+    wire("brandScan", ()=>startCreateForBrand(b.name));
+    wire("editUrl", ()=>editBrandUrl(b));
+    wire("chipToProfile", openProfile);
+  }
+  async function editBrandUrl(b){
+    const url = prompt("Lien d'inscription pour " + b.name + " :", signupUrl(b));
+    if (url === null) return;
+    const val = url.trim();
+    if (b.custom){
+      (programsData.custom||[]).forEach(c=>{ if(c.name===b.name) c.url = val || undefined; });
+    } else {
+      programsData.overrides = programsData.overrides || {};
+      if (val) programsData.overrides[b.name] = val; else delete programsData.overrides[b.name];
+    }
+    await KV.set(PROG_KEY, programsData);
+    const fresh = programList().find(x=>x.name===b.name) || b;
+    openBrand(fresh);
+  }
+  function startCreateForBrand(name){
+    closeCreate();
+    openSheet();
+    el.inName.value = name; updatePreview();
+    openScanner();
+  }
+  function copyText(txt){
+    const done = ()=>toast("Copié ✓");
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(done).catch(()=>fallbackCopy(txt,done));
+    } else fallbackCopy(txt,done);
+  }
+  function fallbackCopy(txt,done){
+    try{
+      const ta=document.createElement("textarea"); ta.value=txt;
+      ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta);
+      ta.focus(); ta.select(); document.execCommand("copy"); ta.remove(); done&&done();
+    }catch(e){ toast("Copie impossible"); }
+  }
+
+  function openProfile(){
+    closePopover(); closeCreate();
+    PF_FIELDS.forEach(([k])=>{ const inp=document.getElementById("pf_"+k); if(inp) inp.value=(profile&&profile[k])||""; });
+    el.profilePanel.classList.add("show");
+  }
+  function closeProfile(){ el.profilePanel.classList.remove("show"); }
+  async function saveProfile(){
+    profile = profile || {};
+    PF_FIELDS.forEach(([k])=>{ const inp=document.getElementById("pf_"+k); if(inp) profile[k]=inp.value.trim(); });
+    await KV.set(PROFILE_KEY, profile);
+    closeProfile(); renderPfBanner(); toast("Profil enregistré");
+  }
+
+  // ---------- Détail ----------
+  let detailMode = "bar";
+  function openDetail(c){
+    current = c;
+    el.detailName.textContent = c.name;
+    el.detailNum.textContent = c.number;
+    setMode("bar");
+    buildRecolor(c);
+    el.detail.classList.add("show");
+  }
+  function setMode(mode){
+    detailMode = mode;
+    document.querySelectorAll(".code-toggle button").forEach(b=>b.classList.toggle("active", b.dataset.mode===mode));
+    if (mode === "bar"){
+      el.qr.style.display = "none"; el.barcode.style.display = "block";
+      renderBarcode(el.barcode, current.number, current.format || detectFormat(current.number));
+    } else {
+      el.barcode.style.display = "none"; el.qr.style.display = "block";
+      el.qr.innerHTML = "";
+      new QRCode(el.qr, { text: current.number, width:190, height:190,
+        colorDark:"#141418", colorLight:"#FFFFFF", correctLevel: QRCode.CorrectLevel.M });
+    }
+  }
+  function buildRecolor(c){
+    el.recolor.innerHTML = "";
+    COLORS.forEach(col=>{
+      const s = document.createElement("button");
+      s.className="swatch"; s.style.background=col;
+      if (col===c.color) s.dataset.sel="1";
+      s.addEventListener("click", async ()=>{
+        c.color = col;
+        [...el.recolor.children].forEach(x=>x.dataset.sel="0"); s.dataset.sel="1";
+        await Store.save(cards); render(el.searchInput.value.trim());
+      });
+      el.recolor.appendChild(s);
+    });
+  }
+  function closeDetail(){ el.detail.classList.remove("show"); current=null; }
+  async function deleteCard(){
+    if (!current) return;
+    if (!confirm("Supprimer la carte « "+current.name+" » ?")) return;
+    cards = cards.filter(c=>c.id!==current.id);
+    await Store.save(cards); closeDetail(); render(el.searchInput.value.trim());
+    toast("Carte supprimée");
+  }
+
+  // ---------- Export / Import ----------
+  function exportData(){
+    const blob = new Blob([JSON.stringify(cards,null,2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "cartes-fidelite.json";
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url); closePopover(); toast("Sauvegarde téléchargée");
+  }
+  function importData(e){
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const imported = JSON.parse(reader.result);
+        if (!Array.isArray(imported)) throw new Error();
+        let added = 0;
+        imported.forEach(c=>{
+          if (c && c.name && c.number){
+            const dup = cards.some(x=>x.name===c.name && x.number===c.number);
+            if (!dup){ cards.unshift({ id:Date.now()+"-"+Math.random().toString(36).slice(2,6),
+              name:c.name, number:c.number, color:c.color||hashColor(c.name),
+              format:c.format||detectFormat(c.number) }); added++; }
+          }
+        });
+        await Store.save(cards); render(); closePopover();
+        toast(added ? added+" carte(s) importée(s)" : "Rien de nouveau à importer");
+      } catch(err){ toast("Fichier illisible"); }
+      e.target.value = "";
+    };
+    reader.readAsText(file);
+  }
+
+  // ---------- Menu / recherche ----------
+  function togglePopover(){ el.popover.classList.toggle("show"); }
+  function closePopover(){ el.popover.classList.remove("show"); }
+
+  // ---------- Events ----------
+  el.fab.addEventListener("click", openSheet);
+  el.scrim.addEventListener("click", closeSheet);
+  el.inName.addEventListener("input", updatePreview);
+  el.inNum.addEventListener("input", updatePreview);
+  el.swatches.addEventListener("click", ()=>{ el._colorTouched = true; });
+  el.inNum.addEventListener("keydown", e=>{ if(e.key==="Enter" && !el.saveBtn.disabled) saveCard(); });
+  el.inName.addEventListener("keydown", e=>{ if(e.key==="Enter") el.inNum.focus(); });
+  el.saveBtn.addEventListener("click", saveCard);
+
+  $("#scanCta").addEventListener("click", openScanner);
+  $("#scannerClose").addEventListener("click", closeScannerFull);
+  $("#photoBtn").addEventListener("click", pickPhoto);
+  $("#photoBtn2").addEventListener("click", pickPhoto);
+  el.scanFile.addEventListener("change", decodePhoto);
+
+  $("#createAcct").addEventListener("click", openCreate);
+  $("#profileItem").addEventListener("click", openProfile);
+  $("#createClose").addEventListener("click", closeCreate);
+  $("#profileClose").addEventListener("click", closeProfile);
+  $("#profileSave").addEventListener("click", saveProfile);
+  $("#pfBannerBtn").addEventListener("click", openProfile);
+  $("#noCardYet").addEventListener("click", ()=>{ closeSheet(); openCreate(); });
+  el.progSearch.addEventListener("input", ()=>renderProgGrid(el.progSearch.value.trim()));
+
+  $("#detailClose").addEventListener("click", closeDetail);
+  $("#detailDel").addEventListener("click", deleteCard);
+  document.querySelectorAll(".code-toggle button").forEach(b=>b.addEventListener("click",()=>setMode(b.dataset.mode)));
+
+  el.menuBtn.addEventListener("click", (e)=>{ e.stopPropagation(); togglePopover(); });
+  document.addEventListener("click", (e)=>{ if(!el.popover.contains(e.target) && e.target!==el.menuBtn) closePopover(); });
+  $("#searchToggle").addEventListener("click", ()=>{
+    el.searchWrap.classList.toggle("show"); closePopover();
+    if (el.searchWrap.classList.contains("show")) el.searchInput.focus();
+    else { el.searchInput.value=""; render(); }
+  });
+  el.searchInput.addEventListener("input", ()=>render(el.searchInput.value.trim()));
+  $("#exportBtn").addEventListener("click", exportData);
+  $("#importBtn").addEventListener("click", ()=>$("#importFile").click());
+  $("#importFile").addEventListener("change", importData);
+
+  document.addEventListener("keydown", e=>{
+    if (e.key==="Escape"){ closeScannerFull(); closeProfile(); closeCreate(); closeSheet(); closeDetail(); closePopover(); }
+  });
+
+  // ---------- Init ----------
+  (async function init(){
+    cards = await Store.load();
+    if (!Array.isArray(cards)) cards = [];
+    profile = await KV.get(PROFILE_KEY, null);
+    const pg = await KV.get(PROG_KEY, null);
+    if (pg && typeof pg === "object") programsData = { overrides: pg.overrides||{}, custom: pg.custom||[] };
+    render();
+  })();
+})();
+</script>
+</body>
+</html>
