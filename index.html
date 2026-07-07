@@ -11,6 +11,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<link rel="manifest" href="./manifest.json">
 <style>
   :root{
     --bg:#141418;
@@ -437,7 +438,7 @@
   </div>
   <div class="field">
     <label for="inNum">Numéro de carte</label>
-    <input type="text" id="inNum" class="mono" placeholder="Le code sous le code-barres" inputmode="numeric" autocomplete="off">
+    <input type="text" id="inNum" class="mono" placeholder="Le code sous le code-barres" autocomplete="off" style="text-transform: uppercase;">
   </div>
   <div class="preview" id="addPreview"><span class="hint">Le code-barres apparaît ici</span></div>
   <div class="fmt-badge" id="fmtBadge"></div>
@@ -495,15 +496,17 @@
   </div>
   <div class="panel-body">
     <p class="pf-note">Ces informations restent sur ton appareil. Elles servent au remplissage express des inscriptions — rien n'est envoyé.</p>
-    <div class="field"><label for="pf_civilite">Civilité</label><input id="pf_civilite" placeholder="Mme / M." autocomplete="off"></div>
-    <div class="field"><label for="pf_prenom">Prénom</label><input id="pf_prenom" autocomplete="given-name"></div>
-    <div class="field"><label for="pf_nom">Nom</label><input id="pf_nom" autocomplete="family-name"></div>
-    <div class="field"><label for="pf_email">E-mail</label><input id="pf_email" type="email" inputmode="email" autocomplete="email"></div>
-    <div class="field"><label for="pf_tel">Téléphone</label><input id="pf_tel" type="tel" inputmode="tel" autocomplete="tel"></div>
-    <div class="field"><label for="pf_naissance">Date de naissance</label><input id="pf_naissance" placeholder="JJ/MM/AAAA" autocomplete="bday"></div>
-    <div class="field"><label for="pf_cp">Code postal</label><input id="pf_cp" inputmode="numeric" autocomplete="postal-code"></div>
-    <div class="field"><label for="pf_ville">Ville</label><input id="pf_ville" autocomplete="address-level2"></div>
-    <button class="btn-primary" id="profileSave" style="margin-top:8px">Enregistrer mon profil</button>
+    <form id="profileForm">
+      <div class="field"><label for="pf_civilite">Civilité</label><input id="pf_civilite" name="honorific-prefix" placeholder="Mme / M." autocomplete="honorific-prefix"></div>
+      <div class="field"><label for="pf_prenom">Prénom</label><input id="pf_prenom" name="fname" autocomplete="given-name"></div>
+      <div class="field"><label for="pf_nom">Nom</label><input id="pf_nom" name="lname" autocomplete="family-name"></div>
+      <div class="field"><label for="pf_email">E-mail</label><input id="pf_email" name="email" type="email" inputmode="email" autocomplete="email"></div>
+      <div class="field"><label for="pf_tel">Téléphone</label><input id="pf_tel" name="tel" type="tel" inputmode="tel" autocomplete="tel"></div>
+      <div class="field"><label for="pf_naissance">Date de naissance</label><input id="pf_naissance" name="bday" placeholder="JJ/MM/AAAA" autocomplete="bday"></div>
+      <div class="field"><label for="pf_cp">Code postal</label><input id="pf_cp" name="zip" inputmode="numeric" autocomplete="postal-code"></div>
+      <div class="field"><label for="pf_ville">Ville</label><input id="pf_ville" name="city" autocomplete="address-level2"></div>
+      <button type="submit" class="btn-primary" id="profileSave" style="margin-top:8px">Enregistrer mon profil</button>
+    </form>
   </div>
 </div>
 
@@ -523,7 +526,7 @@
     <p>Prends une photo du code-barres, je m'occupe de le lire.</p>
     <button class="photo-btn" id="photoBtn2">Prendre une photo</button>
   </div>
-  <input type="file" id="scanFile" accept="image/*" capture="environment" hidden>
+  <input type="file" id="scanFile" accept="image/*" hidden>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -687,7 +690,7 @@
   }
   function updatePreview(){
     const name = el.inName.value.trim();
-    const num = el.inNum.value.trim();
+    const num = el.inNum.value.trim().toUpperCase();
     // couleur auto selon le nom, tant que non modifiée manuellement
     if (name && !el._colorTouched){
       selColor = hashColor(name);
@@ -721,7 +724,7 @@
 
   async function saveCard(){
     const name = el.inName.value.trim();
-    const number = el.inNum.value.trim();
+    const number = el.inNum.value.trim().toUpperCase();
     if (!name || !number) return;
     cards.unshift({ id:Date.now()+"-"+Math.random().toString(36).slice(2,6),
       name, number, color:selColor, format:detectFormat(number) });
@@ -1023,7 +1026,7 @@
   el.fab.addEventListener("click", openSheet);
   el.scrim.addEventListener("click", closeSheet);
   el.inName.addEventListener("input", updatePreview);
-  el.inNum.addEventListener("input", updatePreview);
+  el.inNum.addEventListener("input", ()=>{ el.inNum.value = el.inNum.value.toUpperCase(); updatePreview(); });
   el.swatches.addEventListener("click", ()=>{ el._colorTouched = true; });
   el.inNum.addEventListener("keydown", e=>{ if(e.key==="Enter" && !el.saveBtn.disabled) saveCard(); });
   el.inName.addEventListener("keydown", e=>{ if(e.key==="Enter") el.inNum.focus(); });
@@ -1039,7 +1042,7 @@
   $("#profileItem").addEventListener("click", openProfile);
   $("#createClose").addEventListener("click", closeCreate);
   $("#profileClose").addEventListener("click", closeProfile);
-  $("#profileSave").addEventListener("click", saveProfile);
+  $("#profileForm").addEventListener("submit", (e)=>{ e.preventDefault(); saveProfile(); });
   $("#pfBannerBtn").addEventListener("click", openProfile);
   $("#noCardYet").addEventListener("click", ()=>{ closeSheet(); openCreate(); });
   el.progSearch.addEventListener("input", ()=>renderProgGrid(el.progSearch.value.trim()));
@@ -1066,6 +1069,12 @@
 
   // ---------- Init ----------
   (async function init(){
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
+      });
+    }
+
     cards = await Store.load();
     if (!Array.isArray(cards)) cards = [];
     profile = await KV.get(PROFILE_KEY, null);
