@@ -106,7 +106,12 @@
     opacity:.9;position:relative;z-index:1;
   }
   .card .num small{opacity:.6;font-size:10px;display:block;letter-spacing:.14em;text-transform:uppercase;margin-bottom:2px}
-
+  .card-glow{
+    position:absolute;inset:0;pointer-events:none;z-index:0;
+    background:url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.10"/></svg>'),
+               linear-gradient(135deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 35%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.18) 100%);
+    mix-blend-mode: overlay;
+  }
   /* ---------- Empty ---------- */
   .empty{
     display:none;flex-direction:column;align-items:center;text-align:center;
@@ -210,6 +215,14 @@
     font-size:11px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;padding:8px;
   }
   .detail-top .del:hover{color:#E08B7A}
+  
+  .detail-acts{display:flex;align-items:center;gap:4px}
+  .act-btn{
+    background:none;border:none;color:var(--ink-faint);cursor:pointer;
+    padding:8px;display:grid;place-items:center;font-size:20px;transition:.2s var(--ease);
+  }
+  .act-btn svg{width:18px;height:18px}
+  .act-btn:hover{color:var(--ink)}
 
   .detail-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 24px 30px;gap:20px}
   .detail-name{font-family:var(--display);font-weight:800;font-size:30px;letter-spacing:-.02em;text-align:center;max-width:100%;word-break:break-word}
@@ -451,7 +464,11 @@
 <div class="detail" id="detail" role="dialog" aria-label="Carte">
   <div class="detail-top">
     <button class="close" id="detailClose" aria-label="Fermer">↓</button>
-    <button class="del" id="detailDel">Supprimer</button>
+    <div class="detail-acts">
+      <button class="act-btn" id="detailShare" aria-label="Partager"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg></button>
+      <button class="act-btn" id="detailFav" aria-label="Favori">☆</button>
+      <button class="del" id="detailDel">Supprimer</button>
+    </div>
   </div>
   <div class="detail-body">
     <div class="detail-name" id="detailName"></div>
@@ -622,6 +639,19 @@
   };
 
   // ---------- Utils ----------
+  function vibe(pattern){ if (navigator.vibrate) navigator.vibrate(pattern); }
+
+  let wakeLock = null;
+  async function requestWakeLock() {
+    try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
+  }
+  function releaseWakeLock() {
+    if (wakeLock !== null) { wakeLock.release().then(() => { wakeLock = null; }); }
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (wakeLock !== null && document.visibilityState === 'visible') requestWakeLock();
+  });
+
   function detectFormat(v){
     const digits = /^\d+$/.test(v);
     if (digits && v.length === 13) return "EAN13";
@@ -654,7 +684,13 @@
 
   // ---------- Rendu grille ----------
   function render(filter){
-    const list = filter ? cards.filter(c => c.name.toLowerCase().includes(filter.toLowerCase())) : cards;
+    const q = (filter||"").toLowerCase();
+    const list = cards.filter(c => c.name.toLowerCase().includes(q))
+      .sort((a,b)=>{
+        if(a.favorite && !b.favorite) return -1;
+        if(!a.favorite && b.favorite) return 1;
+        return (b.uses||0) - (a.uses||0);
+      });
     el.grid.innerHTML = "";
     cards.length ? el.empty.classList.remove("show") : el.empty.classList.add("show");
     el.count.textContent = cards.length === 0 ? "Aucune carte"
@@ -665,7 +701,8 @@
       btn.className = "card";
       btn.style.background = c.color;
       btn.style.animationDelay = Math.min(i*30,180) + "ms";
-      btn.innerHTML = `<div class="name">${escapeHtml(c.name)}</div>
+      btn.innerHTML = `<div class="card-glow"></div>
+        <div class="name">${escapeHtml(c.name)}${c.favorite ? ' <span style="color:#E1A200;font-size:14px;vertical-align:top">★</span>' : ''}</div>
         <div class="num"><small>Nº carte</small>${escapeHtml(last4(c.number))}</div>`;
       btn.addEventListener("click", ()=>openDetail(c));
       el.grid.appendChild(btn);
@@ -714,6 +751,7 @@
   }
 
   function openSheet(){
+    vibe(10);
     el._colorTouched = false;
     el.inName.value = ""; el.inNum.value = "";
     updatePreview(); buildSwatches();
@@ -726,6 +764,7 @@
     const name = el.inName.value.trim();
     const number = el.inNum.value.trim().toUpperCase();
     if (!name || !number) return;
+    vibe([20,50,20]);
     cards.unshift({ id:Date.now()+"-"+Math.random().toString(36).slice(2,6),
       name, number, color:selColor, format:detectFormat(number) });
     await Store.save(cards);
@@ -742,6 +781,7 @@
   function onScanned(text){
     const val = String(text||"").trim();
     if (!val) return;
+    vibe([30,50,30]);
     el.inNum.value = val;
     stopScanner(()=>{
       el.scanner.classList.remove("show");
@@ -942,12 +982,24 @@
   // ---------- Détail ----------
   let detailMode = "bar";
   function openDetail(c){
+    vibe(15);
+    requestWakeLock();
     current = c;
+    c.uses = (c.uses || 0) + 1;
+    Store.save(cards); // update usages silently
     el.detailName.textContent = c.name;
     el.detailNum.textContent = c.number;
     setMode("bar");
     buildRecolor(c);
+    updateFavBtn();
     el.detail.classList.add("show");
+  }
+  function updateFavBtn(){
+    const btn = document.getElementById("detailFav");
+    if(btn){
+      btn.textContent = current.favorite ? "★" : "☆";
+      btn.style.color = current.favorite ? "#E1A200" : "var(--ink-faint)";
+    }
   }
   function setMode(mode){
     detailMode = mode;
@@ -976,10 +1028,15 @@
       el.recolor.appendChild(s);
     });
   }
-  function closeDetail(){ el.detail.classList.remove("show"); current=null; }
+  function closeDetail(){ 
+    vibe(10); releaseWakeLock(); 
+    el.detail.classList.remove("show"); current=null; 
+    render(document.getElementById("searchInput").value.trim()); 
+  }
   async function deleteCard(){
     if (!current) return;
     if (!confirm("Supprimer la carte « "+current.name+" » ?")) return;
+    vibe([40,50,40]);
     cards = cards.filter(c=>c.id!==current.id);
     await Store.save(cards); closeDetail(); render(el.searchInput.value.trim());
     toast("Carte supprimée");
@@ -1049,6 +1106,21 @@
 
   $("#detailClose").addEventListener("click", closeDetail);
   $("#detailDel").addEventListener("click", deleteCard);
+  $("#detailFav").addEventListener("click", async () => {
+    vibe(15);
+    current.favorite = !current.favorite;
+    updateFavBtn();
+    await Store.save(cards);
+  });
+  $("#detailShare").addEventListener("click", async () => {
+    vibe(10);
+    const text = `Voici ma carte de fidélité ${current.name} :\nNuméro : ${current.number}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Carte ' + current.name, text }); } catch (e) {}
+    } else {
+      copyText(text);
+    }
+  });
   document.querySelectorAll(".code-toggle button").forEach(b=>b.addEventListener("click",()=>setMode(b.dataset.mode)));
 
   el.menuBtn.addEventListener("click", (e)=>{ e.stopPropagation(); togglePopover(); });
